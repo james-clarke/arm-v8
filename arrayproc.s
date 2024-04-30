@@ -8,7 +8,7 @@ main:
   sub   sp,   sp,   256
 
   // Call init_array
-  adr   x0,   array 
+  adr   x0,   array
   mov   x1,   #10
   bl    init_array
 
