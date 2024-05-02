@@ -44,7 +44,13 @@ main:
   bl    print_array
 
   // Call selection_sort
-
+  adr   x0,   array
+  mov   x1,   #10
+  bl    selection_sort
+  // Print sorted array to verify
+  adr   x0,   array
+  mov   x1,   #10
+  bl    print_array
 
   // Epilog
   mov   x8,   #93
@@ -308,79 +314,92 @@ swap:
   ldp   x29,  x30,  [sp],   #16
   ret
 
-// selection_sort(int arr[], int n)
-//     arr: x0 -> x19
-//       n: x1 -> x20
-// counter: x21, x22
-//  output: void
-.global   selection_sort
+// void selection_sort(int arr[], int n = arraySize)
+// x0 = array address
+// x1 = size of array
+
+.section .text
+.global selection_sort
+
 selection_sort:
-  // Prolog
-  stp   x29,  x30,  [sp, #-16]!
-  sub   sp,   sp,   16
 
-  str   x19,  [sp, 8]
-  str   x20,  [sp, 16]
+        // copy x29, x30
+        stp     x29, x30, [sp, #-16]!
+        // prolog
+        sub     sp, sp, 16      // move stack pointer
+        str     x19, [sp]
+        str     x20, [sp, 8]
 
-  // Store data
-  mov 	x19,  x0
-  mov   x20,  x1
+        mov     x19, x0
+        mov     x20, x1
 
-  // Initialize counters to 0
-  mov   x21,  #0
+        // main body --------------------------------------------------
 
-  // Compare n, 1
-  cmp   x20,  #1
-  ble   sort_end
+        // Check if array size is less than 2
+        mov     x5, #2
+        cmp     x1, x5
+        blt     end_sort
 
-sort_loop:
-  // Check to see if end of array is reached
-  cmp   x21,  x20
-  bge   sort_end
+        // Set initial index i (outer loop)
+        mov     x2, #0                                                          // x2 = i
 
-  // Setting i, j
-  mov   x22,  x21
-  mov   x23,  x21
+sort_outer_loop:
+        // Set the current minimum to the current i position
+        mov     x3, x2                                                          // x3 = min_index
+        add     x4, x0, x2, lsl #2                                              // x4 is the address of arr[i]
 
-  // Get current element in array
-  ldr   w22,  [x19, x21, lsl 2]
+        // Initialize j = i (inner loop)
+        mov     x5, x2                                                          // x5 = j
 
 sort_inner_loop:
-  // Check to see if end of array is reached
-  cmp   x23,  x20
-  bge   sort_end
+        cmp     x5, x1       // Compare j with n
+        bgt     check_end_outer  // If j >= n, end inner loop
 
-  // Grab j
-  ldr   w18,  [x19, x23, lsl 2]
+        // Calculate address of arr[j] for comparison
+        add     x6, x0, x5, lsl #2                                              // x6 is the address of arr[j]
 
-  // Compare arr[1] and arr[0]
-  cmp   w18,  w22
-  bge   sort_inner_end
-  
-  // Set min index to the next index in array
-  mov   x22,  x23
+        // Load values of arr[min_idx] and arr[j]
+        ldr     w7, [x4]                                                        // w7 = arr[min_idx]
+        ldr     w8, [x6]                                                        // w8 = arr[j]
 
-sort_inner_end:
-  // j++, compare with n
-  add   x23,  x23,  #1
-  cmp   x23,  x20
-  b     sort_inner_loop
+        // Compare to find new minimum
+        cmp     w7, w8
+        bgt     update_min   // If arr[min_idx] > arr[j], update min_idx
+        b       skip_update
 
-  // Get address of array indexes of i, min
-  add   x24,  x19,  x21,  lsl 2
-  add   x25,  x19,  x22,  lsl 2
+update_min:
+        // Update min_idx
+        mov     x3, x5
+        mov     x4, x6
 
-  // Grab data, make swap between indexes
-  ldr   w23,  [x24]
-  ldr   w17,  [x25]
-  str   w17,  [x24]
-  str   w23,  [x25]
-  b     sort_loop
+skip_update:
+        // Increment j and continue inner loop
+        add     x5, x5, #1
+        b       sort_inner_loop
 
-sort_end:
-  // Epilog
-  ldr   x19,  [sp]
-  ldr   x20,  [sp, 8]
-  add   sp,   sp,   16
-  ldp   x29,  x30,  [sp],   #16
-  ret
+check_end_outer:
+        // Compare i with min_idx, if not the same, swap
+        cmp     x2, x3
+        beq     skip_swap
+
+        // Perform swap between arr[i] and arr[min_idx]
+        ldr     w9, [x4]     // w9 = arr[min_idx]
+        ldr     w10, [x0, x2, lsl #2]  // w10 = arr[i]
+        str     w9, [x0, x2, lsl #2]
+        str     w10, [x4]
+
+skip_swap:
+        // Increment i and continue outer loop
+        add     x2, x2, #1              // Increment i
+        cmp     x2, x1                  // Compare i with n (consider i reaches up to n-2)
+        blt     sort_outer_loop
+
+end_sort:
+        // epilog ------------------------------------------------------
+        ldr     x19, [sp]
+        ldr     x20, [sp, 8]
+        add     sp, sp, 16      // reset stack pointer
+
+        ldp     x29, x30, [sp], #16
+
+        ret
