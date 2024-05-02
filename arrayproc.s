@@ -1,7 +1,10 @@
+// Including standard C library.
+#include <stdio.h>
+
+
 .section  .text
 
 .global   main
-.extern   printf
 main:
   // Prolog
   stp   x29,  x30,  [sp,  #-16]!
@@ -12,21 +15,21 @@ main:
   mov   x1,   #10
   bl    init_array
 
-//   Call print_array
-//   adr   x0,   array
-//   mov   x1,   #10
-//   bl    print_array
+  // Call print_array
+  adr   x0,   array
+  mov   x1,   #10
+  bl    print_array
 
   // Call copy_array
-  adr   x0,   array_copy
-  adr   x1,   array
-  mov   x2,   #10
-  bl    copy_array
+//  adr   x0,   array_copy
+//  adr   x1,   array
+//  mov   x2,   #10
+//  bl    copy_array
 
   // Call swap
-  adr   x0,   a
-  adr   x1,   b
-  bl    swap
+//  adr   x0,   a
+//  adr   x1,   b
+//  bl    swap
 
   // Epilog
   mov   x8,   #93
@@ -80,7 +83,8 @@ init_end:
 // Print array function
 // x19 = pointer to first element of array
 // x20 = number of elements in array
-// x21 = counter
+// x21 = printed counter
+// x22 = inner loop counter
 .global   print_array
 print_array:
   // Prolog
@@ -90,48 +94,80 @@ print_array:
   str   x19,  [sp, 8]
   str   x20,  [sp, 16]
   str   x21,  [sp, 24]
+  str   x22,  [sp, 32]
 
   // Store data
   mov   x19,  x0
   mov   x20,  x1
 
-  // Initialize counter to 0
+  // Initialize counters to 0
   mov   x21,  #0
+  mov   x22,  #0
 
 print_loop:
   // Compare counter, n
   cmp   x21,  x20
   bge   print_end
 
-  // Load value from array
-  ldr   w18,  [x19,   x21,  lsl 2]
+  // Check inner loop counter == 5 and break loop
+  mov   x6,   #5
+  cmp   x22,  x6
+  bge   print_inner_end
 
-  // Print value (w18)
-  mov   x0,   x18
-  adr   x1,   format_string
-  bl    printf
-
-  // Counter ++, check for newline
+  // Counters increment
   add   x21,  x21,  #1
-  and   x22,  x21,  #4
-  cbz   x22,  newline
+  add   x22,  x22,  #1
 
-  // Print tab
-  adr   x0,   tab_string
+  // Grab element from array and store
+  ldr   w1,   [x19,   x21,  lsl 2]
+
+  // Moving format_string to x0 for printf
+  adrp  x0,   format_string
+  add   x0,   x0,   :lo12:format_string
+
+  bl  printf
+
+  // Tabbing each element
+  adrp  x0,   tab_string
+  add   x0,   x0,   :lo12:tab_string
   bl    printf
+
+  // Loop back
   b     print_loop
 
-newline:
-  adr   x0,   newline_string
+printf:
+  mov  w18,  1
+  mov  x19,  x1
+  mov  x18,  0
+  svc  0
+  ret
+
+//newline:
+//  adr   x0,   newline_string
+//  bl    printf
+//  b     print_loop
+
+print_inner_end:
+  // After 5 values print, newline
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
   bl    printf
+
+  // Reset inner loop counter
+  mov   x22,  #0
+
   b     print_loop
 
 print_end:
   // Epilog
-  mov   x0,   x19
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
+  bl    printf
+
   ldr   x19,  [sp, 8]
   ldr   x20,  [sp, 16]
   ldr   x21,  [sp, 24]
+  ldr   x22,  [sp, 32]
   add   sp,   sp,   32
   ldp   x29,  x30,  [sp],   #16
   ret
@@ -211,6 +247,50 @@ swap:
   ldr   x19,  [sp]
   ldr   x20,  [sp, 8]
   add   sp,   sp,   16
+  ldp   x29,  x30,  [sp],   #16
+  ret
+
+// Use recursion to find the sum of an array
+// x19 = pointer to first element of array
+// x20 = start index
+// x21 = stop index
+// x22 = sum of array
+
+.global  sum_array
+sum_array:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   32
+
+  str   x19,  [sp, 8]
+  str   x20,  [sp, 16]
+  str   x21,  [sp, 24]
+
+  // Store data
+  mov 	x19,  x0
+  mov   x20,  x1
+  mov   x21,  x2
+
+  // Base case
+  cmp   x20,  x21
+  bgt   sum_end
+
+  // Load value of current index
+  ldr   w22,  [x19, x20, lsl 2]
+
+  // Call function sum_array
+  add   x1,   x1,  #1
+  bl    sum_array
+
+  // Add value to sum getting returned
+  add   x0,   x0,  x22
+
+sum_end:
+  // Epilog
+  ldr   x19,  [sp, 8]
+  ldr   x20,  [sp, 16]
+  ldr   x21,  [sp, 24]
+  add   sp,   sp,   32
   ldp   x29,  x30,  [sp],   #16
   ret
 
