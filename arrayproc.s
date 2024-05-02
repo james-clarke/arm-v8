@@ -57,15 +57,11 @@ main:
   mov   x1,   #0
   mov   x2,   #9
   bl    sum_array
-  // Print sum to verify
-  bl    print_value
 
   // Call average
   adr   x0,   array
   mov   x1,   #10
   bl    average
-  // Print average to verify
-  bl    print_value
 
   // Epilog
   mov   x8,   #93
@@ -452,67 +448,56 @@ average:
 // startidx: x1 -> x20
 //  stopidx: x2 -> x21
 //   output: int
-.section  .text
-.global   sum_array
+.section .text
+.global sum_array
 
 sum_array:
-    // Prologue:
+    // Prolog
     stp   x29,  x30,  [sp, #-16]!
-    sub   sp,   sp,   32
+    add   x29,  sp,   #0
+    sub   sp,   sp,   #32
+    
     str   x19,  [sp]
     str   x20,  [sp, 8]
-    str   x21,  [sp, 16]
-    str   x22,  [sp, 24]
 
-    // Store arguments in local variables
+    .equ  CUR_VAL,  16
+
+    // Store function arguments in local variables
     mov   x19,  x0
     mov   x20,  x1
     mov   x21,  x2
 
-    // Check for base case: startIndex > endIndex
+    // Check if the recursive base case is met
     cmp   x20,  x21
     bgt   base_case
 
-    // Load the value at the current startIndex
-    ldr   w6,   [x19, x20, lsl #2]
+    // Load and store current array element
+    ldr   w22,  [x19, x20, lsl #2]
+    str   w22,  [sp, #CUR_VAL]
 
-    // Prepare for recursive call: increment startIndex
-    add   x20,  x20,  #1
-
-    // Recursive call: sum_array(arr, startIndex + 1, endIndex)
+    // Setup for recursive call
+    add   x1,   x20,  #1
     mov   x0,   x19
-    mov   x1,   x20
     mov   x2,   x21
     bl    sum_array
 
-    // Combine the current element with the result of the recursive call
-    add   x0,   x0,   x6
+    // Combine current element with result from recursive call
+    ldr   w22,  [sp, #CUR_VAL]
+    add   x0,   x0,   x22
 
-    // Epilogue:
-    ldr   x19,  [sp]
-    ldr   x20,  [sp, 8]
-    ldr   x21,  [sp, 16]
-    ldr   x22,  [sp, 24]
-    add   sp,   sp,   32
-    ldp   x29,  x30,  [sp],   #16
-    ret
+    // Exit function and restore registers
+    b   exit_function
 
 base_case:
-    // Base case: if startIndex > endIndex, return 0
+    // Base case return
     mov   x0,   #0
-    ret
+    b     exit_function
 
-// Simple function to print values to the screen
-.global   print_value
-
-print_value:
-    stp   x29,  x30,  [sp, #-16]!
-    mov   x2,   x0
-    adrp  x0,   format_string
-    add   x0,   x0,   :lo12:format_string
-    mov   x1,   x2
-
-    bl    printf
-
+exit_function:
+    // Epilog
+    ldr   x19,  [sp]
+    ldr   x20,  [sp, 8]
+    add   sp,   sp,   #32
     ldp   x29,  x30,  [sp],   #16
     ret
+
