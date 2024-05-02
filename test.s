@@ -163,18 +163,9 @@ print_array:
   mov   x22,  #0
 
 print_loop:
-  // Compare counter, n
+  // Compare main counter with size n
   cmp   x21,  x20
   bge   print_end
-
-  // Compare inner_counter, 5
-  mov   x6,   #5
-  cmp   x22,  x6
-  bge   print_inner_end
-
-  // Counters ++
-  add   x21,  x21,  #1
-  add   x22,  x22,  #1
 
   // Grab current element and store in x1 to print
   ldr   w1,   [x19, x21, lsl 2]
@@ -189,8 +180,23 @@ print_loop:
   add   x0,   x0,   :lo12:tab_string
   bl    printf
 
-  // Loop back to top
+  // Increment main counter
+  add   x21,  x21,  #1
+
+  // Increment inner counter for formatting
+  add   x22,  x22,  #1
+  cmp   x22,  #5
+  blt   continue_printing  // Continue if less than 5 elements have been printed
+
+  // Print newline after every 5 elements, reset counter
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
+  bl    printf
+  mov   x22,  #0
+
+continue_printing:
   b     print_loop
+
 
 print_inner_end:
   // After 5 elements, print a newline
