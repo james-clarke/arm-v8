@@ -57,11 +57,15 @@ main:
   mov   x1,   #0
   mov   x2,   #9
   bl    sum_array
+  // Print sum to verify
+  bl    print_value
 
   // Call average
   adr   x0,   array
   mov   x1,   #10
   bl    average
+  // Print average to verify
+  bl    print_value
 
   // Epilog
   mov   x8,   #93
