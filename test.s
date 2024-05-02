@@ -33,6 +33,16 @@ main:
   mov   x1,   #10
   bl    print_array
 
+  // Call copy_array
+  adr   x0,   array_copy
+  adr   x1,   array
+  mov   x2,   #10
+  bl    copy_array
+  // Print copy to verify
+  adr   x0,   array_copy
+  mov   x1,   #10
+  bl    print_array
+
   // Epilog
   mov   x8,   #93
   svc   0
@@ -66,7 +76,7 @@ init_loop:
 
   // Generate random value and store in array
   bl    rand
-  add   w0,   w0,   #0xFF
+  and   w0,   w0,   #0xFF
   str   w0,   [x19,  x21,   lsl 2]
 
   // Counter ++
@@ -133,7 +143,6 @@ init_end:
 //       counter: x21
 // inner_counter: x22
 //        output: formatted array
-
 .global   print_array
 print_array:
   // Prolog
@@ -210,3 +219,49 @@ print_end:
   ldp   x29,  x30,  [sp],   #16
   ret
 
+// copy_array(int dest[], int src[], int n)
+//    dest: x0 -> x19
+//     src: x1 -> x20
+//       n: x2 -> x21
+// counter: x22
+.global   copy_array
+copy_array:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   48
+
+  str   x19,  [sp, 8]
+  str   x20,  [sp, 16]
+  str   x21,  [sp, 24]
+  str   x22,  [sp, 32]
+
+  // Store data
+  mov 	x19,  x0
+  mov   x20,  x1
+  mov   x21,  x2
+
+  // Initialize counter to 0
+  mov   x22,  #0
+
+copy_loop:
+  // Compare counter, n
+  cmp   x22,  x21
+  b     copy_end
+
+  // Load and store data
+  ldr   w2,  [x20, x22, lsl 2]
+  str   w2,  [x19, x22, lsl 2]
+
+  // Increment counter
+  add  x22,  x22,  #1
+  b    copy_loop
+
+copy_end:
+  // Epilog
+  ldr   x19,  [sp, 8]
+  ldr   x20,  [sp, 16]
+  ldr   x21,  [sp, 24]
+  ldr   x22,  [sp, 32]
+  add   sp,   sp,   48
+  ldp   x29,  x30,  [sp],   #16
+  ret
