@@ -413,7 +413,7 @@ end_sort:
 // average(int arr[], int n)
 //    arr: x0 -> x19
 //      n: x1 -> x20
-// output: int
+// output: int average
 .section  .text
 .global   average
 
@@ -447,7 +447,7 @@ average:
 //      arr: x0 -> x19
 // startidx: x1 -> x20
 //  stopidx: x2 -> x21
-//   output: int
+//   output: int sum of array
 .section .text
 .global sum_array
 
