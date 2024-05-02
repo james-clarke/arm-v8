@@ -52,6 +52,17 @@ main:
   mov   x1,   #10
   bl    print_array
 
+  // Call sum_array
+  adr   x0,   array
+  mov   x1,   #0
+  mov   x2,   #9
+  bl    sum_array
+
+  // Call average
+  adr   x0,   array
+  mov   x1,   #10
+  bl    average
+
   // Epilog
   mov   x8,   #93
   svc   0
@@ -314,87 +325,190 @@ swap:
   ldp   x29,  x30,  [sp],   #16
   ret
 
-// void selection_sort(int arr[], int n)
-//     arr: x0 -> x19
-//       n: x1 -> x20
-.section .text
-.global selection_sort
+// selection_sort(int arr[], int n)
+//    arr: x0 -> x19
+//      n: x1 -> x20
+// output: void
+.section  .text
+.global   selection_sort
 
 selection_sort:
     // Prolog
-    stp x29, x30, [sp, #-16]!     // Store the frame pointer and link register
-    sub sp, sp, 16                // Allocate stack space for local variables
+    stp   x29,  x30,  [sp, #-16]!
+    sub   sp,   sp,   16
 
-    str x19, [sp]                 // Store x19 on the stack
-    str x20, [sp, 8]              // Store x20 on the stack
+    str   x19,  [sp]
+    str   x20,  [sp, 8]
 
-    mov x19, x0                   // Copy array base address to x19
-    mov x20, x1                   // Copy array size to x20
+    mov   x19,  x0
+    mov   x20,  x1
 
     // Check if the array size is less than 2
-    cmp x20, #2
-    blt end_sort                  // If n < 2, jump to end_sort
+    cmp   x20,  #2
+    blt   end_sort
 
     // Initialize the index i for the outer loop
-    mov x2, #0                    // x2 = i
+    mov   x2,   #0
 
 sort_outer_loop:
     // Set the current minimum to the current i position
-    mov x3, x2                    // x3 = min_index
-    add x4, x19, x2, lsl #2       // x4 = address of arr[i]
+    mov   x3,   x2
+    add   x4,   x19,  x2,   lsl #2
 
     // Initialize j = i + 1 for the inner loop
-    add x5, x2, #1                // x5 = j
+    add   x5,   x2,   #1
 
 sort_inner_loop:
     // Compare j with n
-    cmp x5, x20
-    bge check_end_outer           // If j >= n, end inner loop
+    cmp   x5,   x20
+    bge   check_end_outer
 
     // Calculate the address of arr[j] for comparison
-    add x6, x19, x5, lsl #2       // x6 = address of arr[j]
+    add   x6,   x19,  x5,   lsl #2
 
     // Load values of arr[min_idx] and arr[j]
-    ldr w7, [x4]                  // w7 = arr[min_idx]
-    ldr w8, [x6]                  // w8 = arr[j]
+    ldr   w7,   [x4]
+    ldr   w8,   [x6]
 
     // Compare to find a new minimum
-    cmp w7, w8
-    bgt update_min                // If arr[min_idx] > arr[j], update min_idx
-    b skip_update                 // Otherwise, skip the update
+    cmp   w7,   w8
+    bgt   update_min
+    b     skip_update
 
 update_min:
     // Update min_idx
-    mov x3, x5
-    mov x4, x6
+    mov   x3,   x5
+    mov   x4,   x6
 
 skip_update:
     // Increment j and continue inner loop
-    add x5, x5, #1
-    b sort_inner_loop
+    add   x5,   x5,   #1
+    b     sort_inner_loop
 
 check_end_outer:
     // Compare i with min_idx, if not the same, swap
-    cmp x2, x3
-    beq skip_swap
+    cmp   x2,   x3
+    beq   skip_swap
 
     // Perform swap between arr[i] and arr[min_idx]
-    ldr w9, [x4]                  // w9 = arr[min_idx]
-    ldr w10, [x19, x2, lsl #2]    // w10 = arr[i]
-    str w9, [x19, x2, lsl #2]
-    str w10, [x4]
+    ldr   w9,   [x4]
+    ldr   w10,  [x19, x2, lsl #2]
+    str   w9,   [x19, x2, lsl #2]
+    str   w10,  [x4]
 
 skip_swap:
     // Increment i and continue outer loop
-    add x2, x2, #1
-    cmp x2, x20
-    blt sort_outer_loop           // If i < n, loop back to sort_outer_loop
+    add   x2,   x2,   #1
+    cmp   x2,   x20
+    blt   sort_outer_loop
 
 end_sort:
     // Epilog
-    ldr x19, [sp]
-    ldr x20, [sp, 8]
-    add sp, sp, 16                // Deallocate stack space
-    ldp x29, x30, [sp], #16       // Restore the frame pointer and link register
-    ret                           // Return from the function
+    ldr   x19,  [sp]
+    ldr   x20,  [sp, 8]
+    add   sp,   sp,   16 
+    ldp   x29,  x30,  [sp],   #16
+    ret
 
+// average(int arr[], int n)
+//    arr: x0 -> x19
+//      n: x1 -> x20
+// output: int
+.section  .text
+.global   average
+
+average:
+    // Prologue
+    stp   x29,  x30,  [sp, #-16]!
+    sub   sp,   sp,   16
+
+    str   x19,  [sp]
+    str   x20,  [sp, 8]
+
+    // Prepare arguments for sum_array function
+    mov   x19,  x0
+    mov   x20,  x1
+    mov   x0,   x19
+    mov   x1,   #0
+    sub   x2,   x20,  #1
+    bl    sum_array
+
+    // Calculate average by dividing the sum by the number of elements
+    udiv  x0,   x0,   x20
+
+    // Epilogue
+    ldr   x19,  [sp]
+    ldr   x20,  [sp, 8]
+    add   sp,   sp,   16
+    ldp   x29,  x30,  [sp],   #16
+    ret
+
+// sum_array(int arr[], int startidx, int stopidx)
+//      arr: x0 -> x19
+// startidx: x1 -> x20
+//  stopidx: x2 -> x21
+//   output: int
+.section  .text
+.global   sum_array
+
+sum_array:
+    // Prologue:
+    stp   x29,  x30,  [sp, #-16]!
+    sub   sp,   sp,   32
+    str   x19,  [sp]
+    str   x20,  [sp, 8]
+    str   x21,  [sp, 16]
+    str   x22,  [sp, 24]
+
+    // Store arguments in local variables
+    mov   x19,  x0
+    mov   x20,  x1
+    mov   x21,  x2
+
+    // Check for base case: startIndex > endIndex
+    cmp   x20,  x21
+    bgt   base_case
+
+    // Load the value at the current startIndex
+    ldr   w6,   [x19, x20, lsl #2]
+
+    // Prepare for recursive call: increment startIndex
+    add   x20,  x20,  #1
+
+    // Recursive call: sum_array(arr, startIndex + 1, endIndex)
+    mov   x0,   x19
+    mov   x1,   x20
+    mov   x2,   x21
+    bl    sum_array
+
+    // Combine the current element with the result of the recursive call
+    add   x0,   x0,   x6
+
+    // Epilogue:
+    ldr   x19,  [sp]
+    ldr   x20,  [sp, 8]
+    ldr   x21,  [sp, 16]
+    ldr   x22,  [sp, 24]
+    add   sp,   sp,   32
+    ldp   x29,  x30,  [sp],   #16
+    ret
+
+base_case:
+    // Base case: if startIndex > endIndex, return 0
+    mov   x0,   #0
+    ret
+
+// Simple function to print values to the screen
+.global   print_value
+
+print_value:
+    stp   x29,  x30,  [sp, #-16]!
+    mov   x2,   x0
+    adrp  x0,   format_string
+    add   x0,   x0,   :lo12:format_string
+    mov   x1,   x2
+
+    bl    printf
+
+    ldp   x29,  x30,  [sp],   #16
+    ret
