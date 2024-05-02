@@ -8,82 +8,85 @@ tab_string:     .string "\t"
 newline_string: .string "\n"
 
 .section  ".bss"
-array:        .skip   40
-array_copy:   .skip   40
-id:           .skip   4
+array:        .skip   212
+array_copy:   .skip   212
 
 .section  .data
 a:  .word   10
 b:  .word   20
-prompt:   .asciz  "Enter TCU ID number: "
+prompt:   .asciz  "Enter TCU ID number: \n"
           .align  2
-output:   .asciz  "TCU ID is: "
+output:   .asciz  "Creating 2 arrays of size 53\n"
           .align  2
-oneint:   .asciz  "%d"
-          .align  2
+orig:     .asciz  "The original array is: \n"
+          .align
+dup:      .asciz  "The sorted duplicate array is: \n"
+          .align 2
+average_p: .asciz  "The averige of the duplicate array is: \n"
 
 .section  .text
 
 .global   main
 main:
-// Prolog
+  // Prolog
   sub   sp,   sp,   256
-  str   x30,  [sp]
+  str   x29,  [sp]
 
   // Prompt for id
   adr   x0,   prompt
   bl    printf
 
-  // Take in ID Number
-  adr   x0,   oneint
-  adr   x1,   id
-  bl    scanf
-
-  // Print output
+  // Output size of n
   adr   x0,   output
-  adr   x1,   id
-  ldr   w1,   [x1]
   bl    printf
 
   // Call init_array
   adr   x0,   array
-  mov   x1,   #10
+  mov   x1,   #53
   bl    init_array
+
+  // Original
+  adr   x0,   orig
+  bl    printf
 
   // Call print_array
   adr   x0,   array
-  mov   x1,   #10
+  mov   x1,   #53
   bl    print_array
 
   // Call copy_array
   adr   x0,   array_copy
   adr   x1,   array
-  mov   x2,   #10
+  mov   x2,   #53
   bl    copy_array
-  // Print copy to verify
-  adr   x0,   array_copy
-  mov   x1,   #10
-  bl    print_array
+
+  // Sorted Duplicate
+  adr   x0,   dup
+  bl    printf
 
   // Call selection_sort
-  adr   x0,   array
-  mov   x1,   #10
+  adr   x0,   array_copy
+  mov   x1,   #53
   bl    selection_sort
   // Print sorted array to verify
-  adr   x0,   array
-  mov   x1,   #10
+  adr   x0,   array_copy
+  mov   x1,   #53
   bl    print_array
 
   // Call sum_array
-  adr   x0,   array
+  adr   x0,   array_copy
   mov   x1,   #0
-  mov   x2,   #9
+  mov   x2,   #52
   bl    sum_array
 
   // Call average
-  adr   x0,   array
+  adr   x0,   array_copy
   mov   x1,   #10
   bl    average
+  
+  // Average
+  adr   x0,   average_p
+  bl    printf
 
   // Epilog
   mov   x8,   #93
