@@ -1,14 +1,27 @@
-// Including standard C library.
-#include <stdio.h>
+// C standard library header
+#include  <stdio.h>
 
+.section  ".rodata"
+dev_urandom:    .asciz  "/dev/urandom"
+format_string:  .string "%5d"
+tab_string:     .string "\t"
+newline_string: .string "\n"
+
+.section  ".bss"
+array:        .skip   40
+array_copy:   .skip   40
+
+.section  .data
+a:  .word   10
+b:  .word   20
 
 .section  .text
 
 .global   main
 main:
   // Prolog
-  stp   x29,  x30,  [sp,  #-16]!
   sub   sp,   sp,   256
+  str   x30,  [sp]
 
   // Call init_array
   adr   x0,   array
@@ -21,24 +34,33 @@ main:
   bl    print_array
 
   // Call copy_array
-//  adr   x0,   array_copy
-//  adr   x1,   array
-//  mov   x2,   #10
-//  bl    copy_array
+  adr   x0,   array_copy
+  adr   x1,   array
+  mov   x2,   #10
+  bl    copy_array
+  // Print copy to verify
+  adr   x0,   array_copy
+  mov   x1,   #10
+  bl    print_array
 
-  // Call swap
-//  adr   x0,   a
-//  adr   x1,   b
-//  bl    swap
+  // Call selection_sort
+  adr   x0,   array
+  mov   x1,   #10
+  bl    selection_sort
+  // Print sorted array to verify
+  adr   x0,   array
+  mov   x1,   #10
+  bl    print_array
 
   // Epilog
   mov   x8,   #93
   svc   0
 
-// Initialize array function
-// x19 = pointer to first element of array
-// x20 = number of elements in array
-// x21 = counter
+// init_array(int arr[], int n)
+//     arr: x0 -> x19
+//       n: x1 -> x20
+// counter: x21
+//  output: void
 .global   init_array
 init_array:
   // Prolog
@@ -63,6 +85,7 @@ init_loop:
 
   // Generate random value and store in array
   bl    rand
+  and   w0,   w0,   #0xFF
   str   w0,   [x19,  x21,   lsl 2]
 
   // Counter ++
@@ -80,223 +103,8 @@ init_end:
   ldp   x29,  x30,  [sp],   #16
   ret
 
-// Print array function
-// x19 = pointer to first element of array
-// x20 = number of elements in array
-// x21 = printed counter
-// x22 = inner loop counter
-.global   print_array
-print_array:
-  // Prolog
-  stp   x29,  x30,  [sp, #-16]!
-  sub   sp,   sp,   32
-
-  str   x19,  [sp, 8]
-  str   x20,  [sp, 16]
-  str   x21,  [sp, 24]
-  str   x22,  [sp, 32]
-
-  // Store data
-  mov   x19,  x0
-  mov   x20,  x1
-
-  // Initialize counters to 0
-  mov   x21,  #0
-  mov   x22,  #0
-
-print_loop:
-  // Compare counter, n
-  cmp   x21,  x20
-  bge   print_end
-
-  // Check inner loop counter == 5 and break loop
-  mov   x6,   #5
-  cmp   x22,  x6
-  bge   print_inner_end
-
-  // Counters increment
-  add   x21,  x21,  #1
-  add   x22,  x22,  #1
-
-  // Grab element from array and store
-  ldr   w1,   [x19,   x21,  lsl 2]
-
-  // Moving format_string to x0 for printf
-  adrp  x0,   format_string
-  add   x0,   x0,   :lo12:format_string
-
-  bl  printf
-
-  // Tabbing each element
-  adrp  x0,   tab_string
-  add   x0,   x0,   :lo12:tab_string
-  bl    printf
-
-  // Loop back
-  b     print_loop
-
-printf:
-  mov  w18,  1
-  mov  x19,  x1
-  mov  x18,  0
-  svc  0
-  ret
-
-//newline:
-//  adr   x0,   newline_string
-//  bl    printf
-//  b     print_loop
-
-print_inner_end:
-  // After 5 values print, newline
-  adrp  x0,   newline_string
-  add   x0,   x0,   :lo12:newline_string
-  bl    printf
-
-  // Reset inner loop counter
-  mov   x22,  #0
-
-  b     print_loop
-
-print_end:
-  // Epilog
-  adrp  x0,   newline_string
-  add   x0,   x0,   :lo12:newline_string
-  bl    printf
-
-  ldr   x19,  [sp, 8]
-  ldr   x20,  [sp, 16]
-  ldr   x21,  [sp, 24]
-  ldr   x22,  [sp, 32]
-  add   sp,   sp,   32
-  ldp   x29,  x30,  [sp],   #16
-  ret
-
-// Copy array function
-// x19 = pointer to destination array
-// x20 = pointer to source  array
-// x21 = number of elements in both arrays
-// x22 = counter
-.global  copy_array
-copy_array:
-  // Prolog
-  stp   x29,  x30,  [sp, #-16]!
-  sub   sp,   sp,   32
-
-  str   x19,  [sp, 8]
-  str   x20,  [sp, 16]
-  str   x21,  [sp, 24]
-  str   x22,  [sp, 32]
-
-  // Store data
-  mov 	x19,  x0
-  mov   x20,  x1
-  mov   x21,  x2
-
-  // Initialize counter to 0
-  mov   x22,  #0
-
-copy_loop:
-  // Compare counter, n
-  cmp   x22,  x21
-  b     copy_end
-
-  // Load and store data
-  ldr   w2,  [x20, x22, lsl 2]
-  str   w2,  [x19, x22, lsl 2]
-
-  // Increment counter
-  add  x22,  x22,  #1
-  b    copy_loop
-
-copy_end:
-  // Epilog
-  ldr   x19,  [sp, 8]
-  ldr   x20,  [sp, 16]
-  ldr   x21,  [sp, 24]
-  ldr   x22,  [sp, 32]
-  add   sp,   sp,   32
-  ldp   x29,  x30,  [sp],   #16
-  ret
-
-// Swap integers function
-// x19 = pointer to a
-// x20 = pointer to b
-// x2,x3 = temp storage
-.global  swap
-swap:
-  // Prolog
-  stp   x29,  x30,  [sp, #-16]!
-  sub   sp,   sp,   16
-
-  str   x19,  [sp]
-  str   x20,  [sp, 8]
-
-  // Store data
-  mov   x19,  x0
-  mov   x20,  x1
-
-  // Load value of a into x2
-  ldr   x2,   [x19]
-  ldr   x3,   [x20]
-
-  str   x3,   [x19]
-  str   x2,   [x20]
-
-  // Epilog
-  ldr   x19,  [sp]
-  ldr   x20,  [sp, 8]
-  add   sp,   sp,   16
-  ldp   x29,  x30,  [sp],   #16
-  ret
-
-// Use recursion to find the sum of an array
-// x19 = pointer to first element of array
-// x20 = start index
-// x21 = stop index
-// x22 = sum of array
-
-.global  sum_array
-sum_array:
-  // Prolog
-  stp   x29,  x30,  [sp, #-16]!
-  sub   sp,   sp,   32
-
-  str   x19,  [sp, 8]
-  str   x20,  [sp, 16]
-  str   x21,  [sp, 24]
-
-  // Store data
-  mov 	x19,  x0
-  mov   x20,  x1
-  mov   x21,  x2
-
-  // Base case
-  cmp   x20,  x21
-  bgt   sum_end
-
-  // Load value of current index
-  ldr   w22,  [x19, x20, lsl 2]
-
-  // Call function sum_array
-  add   x1,   x1,  #1
-  bl    sum_array
-
-  // Add value to sum getting returned
-  add   x0,   x0,  x22
-
-sum_end:
-  // Epilog
-  ldr   x19,  [sp, 8]
-  ldr   x20,  [sp, 16]
-  ldr   x21,  [sp, 24]
-  add   sp,   sp,   32
-  ldp   x29,  x30,  [sp],   #16
-  ret
-
-// Random number generator in range 0-255
-// x19 = temporarily holds file descriptor info
-// x20 = temporarily holds returned random integer
+// rand()
+// Using the /dev/urandom random number generator
 .global  rand
   rand:
   // Prolog
@@ -338,24 +146,255 @@ sum_end:
   add   sp,   sp,   32
   ret
 
-.section  ".rodata"
-dev_urandom:
-  .asciz  "/dev/urandom"
-format_string:
-  .string "%5d"
-tab_string:
-  .string "\t"
-newline_string:
-  .string "\n"
+// print_array(int arr[], int n)
+//           arr: x0 -> x19
+//             n: x1 -> x20
+//       counter: x21
+// inner_counter: x22
+//        output: formatted array
+.global   print_array
+print_array:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   48
 
-.section  ".bss"
-array:
-  .skip   40
-array_copy:
-  .skip   40
+  str   x19,  [sp, 8]
+  str   x20,  [sp, 16]
+  str   x21,  [sp, 24]
+  str   x22,  [sp, 32]
 
-.section  .data
-a:
-  .word   10
-b:
-  .word   20
+  // Store data
+  mov   x19,  x0
+  mov   x20,  x1
+
+  // Initialize counters to 0
+  mov   x21,  #0
+  mov   x22,  #0
+
+print_loop:
+  // Compare main counter with size n
+  cmp   x21,  x20
+  bge   print_end
+
+  // Grab current element and store in x1 to print
+  ldr   w1,   [x19, x21, lsl 2]
+  adrp  x0,   format_string
+  add   x0,   x0,   :lo12:format_string
+
+  // Call printf function
+  bl    printf
+
+  // Print tab after every element
+  adrp  x0,   tab_string
+  add   x0,   x0,   :lo12:tab_string
+  bl    printf
+
+  // Increment main counter
+  add   x21,  x21,  #1
+
+  // Increment inner counter for formatting
+  add   x22,  x22,  #1
+  cmp   x22,  #5
+  blt   continue_printing  // Continue if less than 5 elements have been printed
+
+  // Print newline after every 5 elements, reset counter
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
+  bl    printf
+  mov   x22,  #0
+
+continue_printing:
+  b     print_loop
+
+
+print_inner_end:
+  // After 5 elements, print a newline
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
+  bl    printf
+
+  // Set innner_counter = 0
+  mov   x22,  #0
+
+  // Loop back to top
+  b     print_loop
+
+print_end:
+  // End print_loop with newline_string
+  adrp  x0,   newline_string
+  add   x0,   x0,   :lo12:newline_string
+  bl    printf
+
+  // Epilog
+  ldr   x19,  [sp, 8]
+  ldr   x20,  [sp, 16]
+  ldr   x21,  [sp, 24]
+  ldr   x22,  [sp, 32]
+  add   sp,   sp,   48
+  ldp   x29,  x30,  [sp],   #16
+  ret
+
+// copy_array(int dest[], int src[], int n)
+//    dest: x0 -> x19
+//     src: x1 -> x20
+//       n: x2 -> x21
+// counter: x22
+//  output: void
+.global   copy_array
+copy_array:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   48
+
+  str   x19,  [sp, 8]
+  str   x20,  [sp, 16]
+  str   x21,  [sp, 24]
+  str   x22,  [sp, 32]
+
+  // Store data
+  mov 	x19,  x0
+  mov   x20,  x1
+  mov   x21,  x2
+
+  // Initialize counter to 0
+  mov   x22,  #0
+
+copy_loop:
+  // Compare counter, n
+  cmp   x22,  x21
+  bge   copy_end
+
+  // Load and store data
+  ldr   w2,  [x20, x22, lsl 2]
+  str   w2,  [x19, x22, lsl 2]
+
+  // Increment counter
+  add  x22,  x22,  #1
+  b    copy_loop
+
+copy_end:
+  // Epilog
+  ldr   x19,  [sp, 8]
+  ldr   x20,  [sp, 16]
+  ldr   x21,  [sp, 24]
+  ldr   x22,  [sp, 32]
+  add   sp,   sp,   48
+  ldp   x29,  x30,  [sp],   #16
+  ret
+
+// swap(int *a, int *b)
+//      a: x0 -> x19
+//      b: x1 -> x20
+// output: void
+.global   swap
+swap:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   16
+
+  str   x19,  [sp]
+  str   x20,  [sp, 8]
+
+  // Store data
+  mov   x19,  x0
+  mov   x20,  x1
+
+  // Load value of a, b into x2, x3
+  ldr   x2,   [x19]
+  ldr   x3,   [x20]
+
+  // Make swap
+  str   x3,   [x19]
+  str   x2,   [x20]
+
+  // Epilog
+  ldr   x19,  [sp]
+  ldr   x20,  [sp, 8]
+  add   sp,   sp,   16
+  ldp   x29,  x30,  [sp],   #16
+  ret
+
+// void selection_sort(int arr[], int n)
+//     arr: x0 -> x19
+//       n: x1 -> x20
+.section .text
+.global selection_sort
+
+selection_sort:
+    // Prolog
+    stp x29, x30, [sp, #-16]!     // Store the frame pointer and link register
+    sub sp, sp, 16                // Allocate stack space for local variables
+
+    str x19, [sp]                 // Store x19 on the stack
+    str x20, [sp, 8]              // Store x20 on the stack
+
+    mov x19, x0                   // Copy array base address to x19
+    mov x20, x1                   // Copy array size to x20
+
+    // Check if the array size is less than 2
+    cmp x20, #2
+    blt end_sort                  // If n < 2, jump to end_sort
+
+    // Initialize the index i for the outer loop
+    mov x2, #0                    // x2 = i
+
+sort_outer_loop:
+    // Set the current minimum to the current i position
+    mov x3, x2                    // x3 = min_index
+    add x4, x19, x2, lsl #2       // x4 = address of arr[i]
+
+    // Initialize j = i + 1 for the inner loop
+    add x5, x2, #1                // x5 = j
+
+sort_inner_loop:
+    // Compare j with n
+    cmp x5, x20
+    bge check_end_outer           // If j >= n, end inner loop
+
+    // Calculate the address of arr[j] for comparison
+    add x6, x19, x5, lsl #2       // x6 = address of arr[j]
+
+    // Load values of arr[min_idx] and arr[j]
+    ldr w7, [x4]                  // w7 = arr[min_idx]
+    ldr w8, [x6]                  // w8 = arr[j]
+
+    // Compare to find a new minimum
+    cmp w7, w8
+    bgt update_min                // If arr[min_idx] > arr[j], update min_idx
+    b skip_update                 // Otherwise, skip the update
+
+update_min:
+    // Update min_idx
+    mov x3, x5
+    mov x4, x6
+
+skip_update:
+    // Increment j and continue inner loop
+    add x5, x5, #1
+    b sort_inner_loop
+
+check_end_outer:
+    // Compare i with min_idx, if not the same, swap
+    cmp x2, x3
+    beq skip_swap
+
+    // Perform swap between arr[i] and arr[min_idx]
+    ldr w9, [x4]                  // w9 = arr[min_idx]
+    ldr w10, [x19, x2, lsl #2]    // w10 = arr[i]
+    str w9, [x19, x2, lsl #2]
+    str w10, [x4]
+
+skip_swap:
+    // Increment i and continue outer loop
+    add x2, x2, #1
+    cmp x2, x20
+    blt sort_outer_loop           // If i < n, loop back to sort_outer_loop
+
+end_sort:
+    // Epilog
+    ldr x19, [sp]
+    ldr x20, [sp, 8]
+    add sp, sp, 16                // Deallocate stack space
+    ldp x29, x30, [sp], #16       // Restore the frame pointer and link register
+    ret                           // Return from the function
+
