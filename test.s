@@ -168,7 +168,7 @@ print_loop:
   bge   print_end
 
   // Compare inner_counter, 5
-  mov   x6,   #6
+  mov   x6,   #5
   cmp   x22,  x6
   bge   print_inner_end
 
@@ -254,7 +254,7 @@ copy_loop:
 
   // Increment counter
   add  x22,  x22,  #1
-  b    copy_loop
+  bge  copy_loop
 
 copy_end:
   // Epilog
@@ -265,3 +265,6 @@ copy_end:
   add   sp,   sp,   48
   ldp   x29,  x30,  [sp],   #16
   ret
+
+// swap(int *a, int *b)
+
