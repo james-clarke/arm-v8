@@ -10,18 +10,40 @@ newline_string: .string "\n"
 .section  ".bss"
 array:        .skip   40
 array_copy:   .skip   40
+id:           .skip   4
 
 .section  .data
 a:  .word   10
 b:  .word   20
+prompt:   .asciz  "Enter TCU ID number: "
+          .align  2
+output:   .asciz  "TCU ID is: "
+          .align  2
+oneint:   .asciz  "%d"
+          .align  2
 
 .section  .text
 
 .global   main
 main:
-  // Prolog
+// Prolog
   sub   sp,   sp,   256
   str   x30,  [sp]
+
+  // Prompt for id
+  adr   x0,   prompt
+  bl    printf
+
+  // Take in ID Number
+  adr   x0,   oneint
+  adr   x1,   id
+  bl    scanf
+
+  // Print output
+  adr   x0,   output
+  adr   x1,   id
+  ldr   w1,   [x1]
+  bl    printf
 
   // Call init_array
   adr   x0,   array
@@ -66,6 +88,7 @@ main:
   // Epilog
   mov   x8,   #93
   svc   0
+
 
 // init_array(int arr[], int n)
 //     arr: x0 -> x19
