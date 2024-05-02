@@ -43,6 +43,9 @@ main:
   mov   x1,   #10
   bl    print_array
 
+  // Call selection_sort
+
+
   // Epilog
   mov   x8,   #93
   svc   0
@@ -230,6 +233,7 @@ print_end:
 //     src: x1 -> x20
 //       n: x2 -> x21
 // counter: x22
+//  output: void
 .global   copy_array
 copy_array:
   // Prolog
@@ -252,7 +256,7 @@ copy_array:
 copy_loop:
   // Compare counter, n
   cmp   x22,  x21
-  b     copy_end
+  bge   copy_end
 
   // Load and store data
   ldr   w2,  [x20, x22, lsl 2]
@@ -260,7 +264,7 @@ copy_loop:
 
   // Increment counter
   add  x22,  x22,  #1
-  bge  copy_loop
+  b    copy_loop
 
 copy_end:
   // Epilog
@@ -273,4 +277,110 @@ copy_end:
   ret
 
 // swap(int *a, int *b)
+//      a: x0 -> x19
+//      b: x1 -> x20
+// output: void
+.global   swap
+swap:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   16
 
+  str   x19,  [sp]
+  str   x20,  [sp, 8]
+
+  // Store data
+  mov   x19,  x0
+  mov   x20,  x1
+
+  // Load value of a, b into x2, x3
+  ldr   x2,   [x19]
+  ldr   x3,   [x20]
+
+  // Make swap
+  str   x3,   [x19]
+  str   x2,   [x20]
+
+  // Epilog
+  ldr   x19,  [sp]
+  ldr   x20,  [sp, 8]
+  add   sp,   sp,   16
+  ldp   x29,  x30,  [sp],   #16
+  ret
+
+// selection_sort(int arr[], int n)
+//     arr: x0 -> x19
+//       n: x1 -> x20
+// counter: x21, x22
+//  output: void
+.global   selection_sort
+selection_sort:
+  // Prolog
+  stp   x29,  x30,  [sp, #-16]!
+  sub   sp,   sp,   16
+
+  str   x19,  [sp, 8]
+  str   x20,  [sp, 16]
+
+  // Store data
+  mov 	x19,  x0
+  mov   x20,  x1
+
+  // Initialize counters to 0
+  mov   x21,  #0
+
+  // Compare n, 1
+  cmp   x20,  #1
+  ble   sort_end
+
+sort_loop:
+  // Check to see if end of array is reached
+  cmp   x21,  x20
+  bge   sort_end
+
+  // Setting i, j
+  mov   x22,  x21
+  mov   x23,  x21
+
+  // Get current element in array
+  ldr   w22,  [x19, x21, lsl 2]
+
+sort_inner_loop:
+  // Check to see if end of array is reached
+  cmp   x23,  x20
+  bge   sort_end
+
+  // Grab j
+  ldr   w18,  [x19, x23, lsl 2]
+
+  // Compare arr[1] and arr[0]
+  cmp   w18,  w22
+  bge   sort_inner_end
+  
+  // Set min index to the next index in array
+  mov   x22,  x23
+
+sort_inner_end:
+  // j++, compare with n
+  add   x23,  x23,  #1
+  cmp   x23,  x20
+  b     sort_inner_loop
+
+  // Get address of array indexes of i, min
+  add   x24,  x19,  x21,  lsl 2
+  add   x25,  x19,  x22,  lsl 2
+
+  // Grab data, make swap between indexes
+  ldr   w23,  [x24]
+  ldr   w17,  [x25]
+  str   w17,  [x24]
+  str   w23,  [x25]
+  b     sort_loop
+
+sort_end:
+  // Epilog
+  ldr   x19,  [sp]
+  ldr   x20,  [sp, 8]
+  add   sp,   sp,   16
+  ldp   x29,  x30,  [sp],   #16
+  ret
